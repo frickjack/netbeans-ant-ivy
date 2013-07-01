@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivysettings>
+    <settings defaultResolver="default"/>
+    <caches artifactPattern="[organisation]/[module]/[type]s/[artifact]-[revision](-[classifier]).[ext]" 
+        overwriteMode="newer"
+        defaultCacheDir="${ivy.jar.dir}/ivyRepo/cache"
+        />
+        
+    <!-- disable digest check -->
+    <property name="ivy.checksums" value=""/>    
+    <resolvers>
+        <filesystem name="local">
+            <ivy pattern="${ivy.jar.dir}/ivyRepo/repository/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            <artifact pattern="${ivy.jar.dir}/ivyRepo/repository/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />                                    
+        </filesystem>
+        <filesystem name="localMaven" m2compatible="true" >
+            <ivy pattern="${user.home}/.m2/repository/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            <artifact pattern="${user.home}/.m2/repository/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />            
+        </filesystem>
+        <ibiblio name="central" m2compatible="true" usepoms="true" root="http://repo1.maven.org/maven2"
+            pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+            />
+        <ibiblio name="java.net" m2compatible="true" usepoms="false" 
+        	root="http://download.java.net/maven/2"
+        	pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+        	/>
+            
+            <!--
+        <ibiblio name="jboss" m2compatible="true" usepoms="false" root="http://repository.jboss.org/maven2"
+            pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+            />
+        <ibiblio name="gson" m2compatible="true" usepoms="false" root="http://google-gson.googlecode.com/svn/mavenrepo"
+            pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+            />
+        <ibiblio name="google" m2compatible="true" usepoms="false" 
+        	root="http://google-maven-repository.googlecode.com/svn/repository/"
+        	pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+        	/>
+        <ibiblio name="primefaces" m2compatible="true" usepoms="false" 
+        	root="http://repository.prime.com.tr"
+        	pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+        	/>
+        <ibiblio name="dspace" m2compatible="true" usepoms="false" 
+        	root="http://maven.dspace.org/release"
+        	pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+        	/>
+        <ibiblio name="fuse" m2compatible="true" usepoms="false" 
+        	root="http://repo.fusesource.com/maven2"
+        	pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"
+        	/>
+        	
+        	
+        <url name="com.springsource.repository.bundles.release">
+            <ivy pattern="http://repository.springsource.com/ivy/bundles/release/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+            <artifact pattern="http://repository.springsource.com/ivy/bundles/release/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        </url>
+        <url name="com.springsource.repository.bundles.external">
+           <ivy pattern="http://repository.springsource.com/ivy/bundles/external/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+           <artifact pattern="http://repository.springsource.com/ivy/bundles/external/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        </url>  
+        
+        <url name="n9n.ivy2">
+           <ivy pattern="http://n9n.mtvn.ad.viacom.com/repository/ivy2/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+           <artifact pattern="http://n9n.mtvn.ad.viacom.com/repository/ivy2/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        </url>            
+        <ibiblio name="n9n.maven2" m2compatible="true" usepoms="false" 
+                root="http://n9n.mtvn.ad.viacom.com/repository/maven2/" />
+        	pattern="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
+        	
+        <url name="littleware.ivy2">
+           <ivy pattern="http://ivy2maven2.littleware.googlecode.com/hg/ivy2/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+           <artifact pattern="http://ivy2maven2.littleware.googlecode.com/hg/ivy2/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]" />
+        </url>  
+        
+        <ibiblio name="littleware.maven2" m2compatible="true" usepoms="false" 
+                root="http://ivy2maven2.littleware.googlecode.com/hg/maven2/" />
+          -->
+            
+        <chain name="default" returnFirst="true">
+            <resolver ref="local"/>
+            <resolver ref="localMaven"/>
+            <resolver ref="central"/>
+            
+            <!-- ... these artifacts now in central ...
+            <resolver ref="java.net"/>
+            <resolver ref="jboss"/>
+            
+            
+            <resolver ref="gson"/>
+            <resolver ref="google"/>
+            
+                        
+            <resolver ref="fuse"/>   has proxool 0.9.1 
+            <resolver ref="com.springsource.repository.bundles.external"/>
+            
+            
+            <resolver ref="littleware.maven2"/>   has oracle jdbc driver
+            <resolver ref="littleware.ivy2"/>
+            
+            <resolver ref="primefaces"/>
+            -->
+        </chain>
+    </resolvers>
+</ivysettings>
+

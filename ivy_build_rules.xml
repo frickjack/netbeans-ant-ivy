@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- -->
+<!-- Ant project mixin with build rules for IVY support etc. -->
+<!-- You may freely edit this file. See commented blocks below for -->
+<!--  -->
+<project
+     xmlns:ivy="antlib:org.apache.ivy.ant"
+     name="ivy-template"
+     >
+    <description>Some build rules with IVY.</description>
+
+<property name="ivy.install.version" value="2.3.0" /> 
+<dirname property="ivy.jar.dir" file="${ant.file.ivy-template}" />
+<property name="ivy.settings.file" value="${ivy.jar.dir}/littlesettings.xml" />
+<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" /> 
+<property name="libs.CopyLibs.classpath" value="${ivy.jar.dir}/netbeans_ant/org-netbeans-modules-java-j2seproject-copylibstask.jar" />
+<property name="typescript.compiler.path" value="${user.home}/AppData/Roaming/npm/tsc.cmd" />
+<property name="ydoc.path" value="${user.home}/Documents/Code/yuidoc/bin/ydoc.bat" />
+
+
+
+<target name="-post-clean">
+    <delete dir="${basedir}/ivy" />
+    <property name="ivy.clean" value="true" />
+</target>
+
+<target name="config-check">
+     <!--
+    <available file="${ivy.jar.dir}/littlesettings.xml" property="settings.exists"/>
+    -->
+    <available file="${ivy.jar.file}" property="ivyjar.exists"/>
+    <available file="ivy/test" property="ivy.resolve.test.exists" />
+    <available file="ivy/compile" property="ivy.resolve.compile.exists" />
+    <available file="ivy.xml" property="ivy.xml.exists" />
+
+    <condition property="skip.download">
+        <and>
+            <isset property="ivyjar.exists" />
+        </and>
+    </condition>
+    
+    <condition property="ivy.resolve.exists">
+        <and>
+            <isset property="ivy.resolve.test.exists" />
+            <isset property="ivy.resolve.compile.exists" />
+        </and>
+    </condition>
+        
+</target>
+
+
+<target name="download-ivy" depends="config-check" unless="skip.download"> 
+    	<mkdir dir="${ivy.jar.dir}"/> 
+		<!-- download Ivy from web site so that it can be used even without any special installation --> 
+		<echo message="installing ivy..."/> 
+    	<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
+    		 dest="${ivy.jar.file}" usetimestamp="true"/> 
+    		 <!--
+   	<get src="http://ivy2maven2.littleware.googlecode.com/hg/littlesettings.xml"
+    		 dest="${ivy.jar.dir}/littlesettings.xml" usetimestamp="true"
+    		 />  
+    		 -->
+</target> 
+    
+    <!-- ================================= 
+          target: install-ivy         
+            this target is not necessary if you put ivy.jar in your ant lib directory
+            if you already have ivy in your ant lib, you can simply remove this
+            target and the dependency the 'go' target has on it
+         ================================= --> 
+<target name="install-ivy" depends="download-ivy" description="--> install ivy" if="ivy.xml.exists"> 
+    	<!-- try to load ivy here from local ivy dir, in case the user has not already dropped
+    	      it into ant's lib dir (note that the latter copy will always take precedence).
+    	      We will not fail as long as local lib dir exists (it may be empty) and
+    	      ivy is in at least one of ant's lib dir or the local lib dir. --> 
+    	<path id="ivy.lib.path"> 
+    	    <fileset dir="${ivy.jar.dir}" includes="*.jar"/> 
+    	</path> 
+    	<taskdef resource="org/apache/ivy/ant/antlib.xml"
+    	          uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+    	          <!--
+    	          <ivy:settings file="${user.home}/Documents/Code/repository/littlesettings.xml" />
+    	<ivy:settings url="http://ivy2maven2.littleware.googlecode.com/hg/littlesettings.xml" />
+    	-->
+    	<ivy:settings />
+    	<ivy:info />
+</target>    
+
+    
+<macrodef name="doResolve">
+    <attribute name="param.ivy.config" />
+<!--
+IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
+-->
+    <sequential>
+    <mkdir dir="ivy/@{param.ivy.config}" />
+    <ivy:resolve resolveMode="dynamic" />
+    <ivy:retrieve conf="@{param.ivy.config}" pattern="ivy/@{param.ivy.config}/[artifact]-[revision]-[type].[ext]"
+            overwriteMode="newer"
+            sync="true"
+            />
+    <mkdir dir="ivy/@{param.ivy.config}" /> <!-- in case no dependencies exist ... -->
+    <pathconvert property="ivy.@{param.ivy.config}.classpath" dirsep="/" pathsep=":">
+            <path>
+                <fileset dir="ivy/@{param.ivy.config}" includes="*.jar"/>
+            </path>
+            <map from="${basedir}@{file.separator}" to=""/>
+    </pathconvert>
+    
+    <mkdir dir="nbproject/private" />
+    <propertyfile file="nbproject/private/private.properties">
+            <entry operation="=" key="ivy.@{param.ivy.config}.classpath" value="${ivy.@{param.ivy.config}.classpath}"/>
+    </propertyfile>
+    </sequential>
+</macrodef>
+
+<target name="resolveIfNecessary" 
+    depends="install-ivy" 
+    description="-- same as retrieve, but NOOP if ivy/test|compile already exists"
+    unless="ivy.resolve.exists"
+    >    
+    <antcall target="resolve" />
+</target>
+
+<target name="resolveIfClean" 
+    depends="install-ivy" 
+    description="-- same as resolve if 'clean' was executed in a previous task: ant clean compile"
+    if="ivy.clean"
+    >   
+    <antcall target="resolve" />
+</target>
+
+
+<target name="resolve" depends="install-ivy" description="-- retrieve dependencies with ivy" if="ivy.xml.exists">
+    <!--
+    We assume here that there are 'compile' and 'test' ivy configs.
+    Delete dist/ivy.xml to force rebuild
+    -->
+    <delete file="dist/ivy.xml" />
+    
+    <doResolve param.ivy.config="compile" />
+    <doResolve param.ivy.config="test" />
+    
+    <propertyfile file="nbproject/project.properties">
+            <entry operation="=" key="javac.classpath" value="$${ivy.compile.classpath}"/>
+            <entry operation="=" key="javac.test.classpath" value="$${ivy.compile.classpath}:$${build.classes.dir}"/>
+            <entry operation="=" key="run.classpath" value="$${build.classes.dir}:$${ivy.test.classpath}"/>
+            <entry operation="=" key="run.test.classpath" value="$${build.classes.dir}:$${ivy.test.classpath}"/>            
+    </propertyfile>
+    
+    <!-- f'ing propertyfile task adds a comment -->
+    <replaceregexp file="nbproject/project.properties" match="^(#[^\r\n]*[\r\n\s]+)+" replace="" />
+            
+    <property name="javac.classpath" value="${ivy.compile.classpath}" />
+    <property name="javac.test.classpath" value="${ivy.compile.classpath}" />
+    <property name="run.classpath" value="build/classes:${ivy.test.classpath}" />
+    <property name="run.test.classpath" value="build/classes:${ivy.test.classpath}" />
+</target>
+
+<!-- nbproject/project.properties loaded in "init" -->
+<target name="-pre-init" depends="resolveIfNecessary" />
+
+<target depends="init" name="-check-webproject-status">
+    <condition property="typescript.ready">
+        <and>
+            <!--
+            <isset property="settings.exists" />
+            -->
+            <isset property="build.web.dir" />
+            <isset property="typescript.compiler.path" />
+            <available file="${typescript.compiler.path}" />
+            <available file="${build.web.dir}/resources/js" />
+        </and>
+    </condition>    
+    
+    <condition property="ydoc.ready">
+        <and>
+            <!--
+            <isset property="settings.exists" />
+            -->
+            <isset property="build.web.dir" />
+            <isset property="ydoc.path" />
+            <available file="${ydoc.path}" />
+            <available file="${build.web.dir}/resources/js/littleware" />
+        </and>
+    </condition>    
+    
+    <condition property="build.copy.webjars">
+       <and>
+          <isset property="build.web.dir" />
+          <available file="ivy/test" />
+       </and>
+    </condition>
+    
+    <echo message="post-init checks, ydoc.ready: ${ydoc.ready}, typescript.ready: ${typescript.ready}, build.copy.webjars: ${build.copy.webjars}" />
+</target>
+
+<target name="-pre-compile" depends="resolveIfClean" />
+
+<target name="cli-check">
+    <available file="cli" property="cli.exists"/>
+</target>
+
+<target name="-set-buildId" unless="buildId">
+    <tstamp>
+        <format property="buildId" pattern="yyyyMMdd.HHmm" />
+    </tstamp>
+</target>
+
+<target name="-post-jar"
+        depends="-init-project,cli-check"
+        if="cli.exists"
+         >
+         <!--
+         Copy scripts in cli/ directory to dist dir
+         -->
+    <fail unless="dist.dir">dist.dir not defined ? </fail>
+    <copy todir="${dist.dir}">
+        <fileset dir="cli">
+            <include name="*.sh" />
+            <include name="*.bat" />
+            <include name="*.properties" />
+        </fileset>
+    </copy>
+  </target>
+    
+<target name="publish-fast" depends="-init-project,jar" description="publish SNAPSHOT build to local ivy repository without initial resolve">
+	<ivy:publish  overwrite="true"
+			           resolver="local"
+			           pubrevision="${ivy.revision}.zSNAPSHOT"
+			           replacedynamicrev="false"
+			           status="integration"
+			           update="true"
+			           >
+             <artifacts pattern="${dist.dir}/[artifact].[ext]" />
+         </ivy:publish>
+         <delete dir="${ivy.cache.dir}/${ivy.organisation}" />
+    </target>
+  
+<target name="publish" depends="resolve,publish-fast" description="publish SNAPSHOT build to local ivy repository" />
+    
+ <!-- publish with a date-based revision number -->   
+<target name="milestone" depends="publish,-set-buildId" description="deliver MILESTONE build to local repository">
+	<ivy:publish  overwrite="true"
+			           resolver="local"
+			           pubrevision="${ivy.revision}.b${buildId}"
+			           replacedynamicrev="false"
+			           status="milestone"
+			           update="true"
+			           >
+             <artifacts pattern="${dist.dir}/[artifact].[ext]" />
+         </ivy:publish>
+         <delete dir="${ivy.cache.dir}/${ivy.organisation}" />
+</target>
+
+<target name="jenkins-prep" depends="-init-project">
+    <!--
+      Setup reports directory, etc.
+      -->
+  <property name="test.reports.dir" value="testReports" />
+  <property name="test.littlehome.dir" value="${ivy.jar.dir}/littleTestHome" /> 
+  <property name="test.db.dir" value="${test.littlehome.dir}/testdb" />
+  
+  <mkdir dir="${test.littlehome.dir}" />
+  <copy todir="${test.littlehome.dir}">
+      <fileset dir="${ivy.jar.dir}/testProperties">
+        <include name="*.properties" />
+        <include name="*.conf" />
+      </fileset>  
+  </copy>
+  
+  <mkdir dir="${test.db.dir}" />
+  <copy todir="${test.db.dir}">
+      <fileset dir="${ivy.jar.dir}/../littleDistro/src/server/data/javadb" />
+  </copy>
+
+  <!--
+  <echo message="Run classpath: ${run.classpath}" />
+  -->
+  <delete dir="${test.reports.dir}" />
+  <mkdir dir="${test.reports.dir}"/>
+      
+</target>
+
+<macrodef name="runTest">
+    <attribute name="param.test.files" />
+ <sequential>
+  <junit fork="yes" dir="${basedir}" printsummary="no" haltonfailure="no">
+    <jvmarg value="-Xms300m" />
+    <jvmarg value="-Xmx300m" />
+    <jvmarg value="-Dderby.system.home=${test.db.dir}" />
+    <jvmarg value="-Djava.awt.headless=true" />
+    <jvmarg value="-Djava.util.logging.config.file=${test.littlehome.dir}/logging.properties" />
+    <jvmarg value="-Djava.awt.headless=true" />
+    <!--
+    <jvmarg value="-Djava.security.manager" />
+    <jvmarg value="-Djava.security.policy=${test.properties.dir}/littleware.policy" />
+    -->
+    <jvmarg value="-Dlittleware.home=${test.littlehome.dir}" />
+    <!--
+    <test name="${test.class.name}" />
+    -->
+    
+    <batchtest fork="yes" todir="${test.reports.dir}" >
+      <fileset dir="${build.classes.dir}">
+        <include name="@{param.test.files}" />
+      </fileset>
+    </batchtest>
+    
+    <formatter type="xml" />
+    <classpath path="${run.classpath}" />
+  </junit>
+    </sequential>
+</macrodef>
+
+<target depends="jenkins-prep" name="test-jenkins"
+    description="Run jenkins test class specified by test.classFile"
+   >
+   <sequential>
+  <runTest param.test.files="${test.classFile}" />
+  <junitreport todir="${test.reports.dir}">
+    <fileset dir="${test.reports.dir}">
+      <include name="TEST-*.xml" />
+    </fileset>
+    <report todir="${test.reports.dir}" />
+  </junitreport>
+  
+    </sequential>
+</target>
+
+<!-- web project stuff -->
+
+
+<target name="ydoc" depends="-check-webproject-status" if="ydoc.ready" 
+    description="run ydoc on build/ js"
+    >
+  <exec executable="${ydoc.path}">
+    <arg value="${build.web.dir}/resources/js/littleware"/>
+ </exec>    
+</target>
+
+    
+<!--
+    Recursively read a source directory for TypeScript files, generate a compile list in the
+    format needed by the TypeScript compiler adding every parameters it take.
+    Thanks Tekool.net:
+       http://stackoverflow.com/questions/12799237/how-to-watch-and-compile-all-typescript-sources
+-->
+<macrodef name="TypeScriptCompileDir">
+
+    <!-- required attribute -->
+    <attribute name="src" />
+
+    <!-- optional attributes -->
+    <attribute name="out" default="" />
+    <attribute name="module" default="" />
+    <attribute name="comments" default="" />
+    <attribute name="declarations" default="" />
+    <attribute name="nolib" default="" />
+    <attribute name="target" default="" />
+
+    <sequential>
+
+        <!-- local properties -->
+        <local name="out.arg"/>
+        <local name="module.arg"/>
+        <local name="comments.arg"/>
+        <local name="declarations.arg"/>
+        <local name="nolib.arg"/>
+        <local name="target.arg"/>
+        <local name="typescript.file.list"/>
+        <local name="tsc.compile.file"/>
+
+        <property name="tsc.compile.file" value="@{src}compile.list" />
+
+        <!-- Optional arguments are not written to compile file when attributes not set -->
+        <condition property="out.arg" value="" else='--out "@{out}"'>
+            <equals arg1="@{out}" arg2="" />
+        </condition>
+
+        <condition property="module.arg" value="" else="--module @{module}">
+            <equals arg1="@{module}" arg2="" />
+        </condition>
+
+        <condition property="comments.arg" value="" else="--comments">
+            <equals arg1="@{comments}" arg2="" />
+        </condition>
+
+        <condition property="declarations.arg" value="" else="--declarations">
+            <equals arg1="@{declarations}" arg2="" />
+        </condition>
+
+        <condition property="nolib.arg" value="" else="--nolib">
+            <equals arg1="@{nolib}" arg2="" />
+        </condition>
+
+        <!-- Could have been defaulted to ES3 but let the compiler uses its own default is quite better -->
+        <condition property="target.arg" value="" else="--target @{target}">
+            <equals arg1="@{target}" arg2="" />
+        </condition>
+
+        <!-- Recursively read TypeScript source directory and generate a compile list -->
+        <pathconvert property="typescript.file.list" dirsep="\" pathsep="${line.separator}">
+
+            <fileset dir="@{src}">
+                <include name="**/*.ts" />
+                <exclude name="**/*.d.ts" />
+            </fileset>
+
+            <!-- In case regexp doesn't work on your computer, comment <mapper /> and uncomment <regexpmapper /> -->
+            <mapper type="regexp" from="^(.*)$" to='"\1"' />
+            <!--regexpmapper from="^(.*)$" to='"\1"' /-->
+
+        </pathconvert>
+
+
+        <!-- Write to the file -->
+        <echo message="Writing tsc command line arguments to : ${tsc.compile.file}" />
+        <echo file="${tsc.compile.file}" message="${typescript.file.list}${line.separator}${out.arg}${line.separator}${module.arg}${line.separator}${comments.arg}${line.separator}${declarations.arg}${line.separator}${nolib.arg}${line.separator}${target.arg}${line.separator}--sourcemap" append="false" />
+
+        <!-- Compile using the generated compile file --> 
+        <echo message="Calling ${typescript.compiler.path} with ${tsc.compile.file}" />
+        <exec dir="." executable="${typescript.compiler.path}">
+            <arg value="@${tsc.compile.file}"/>
+        </exec>
+
+        <!-- Finally delete the compile file 
+        <echo message="${tsc.compile.file} deleted" />
+        <delete file="${tsc.compile.file}" />
+        -->
+
+    </sequential>
+
+</macrodef>
+
+
+<target name="typescript" depends="-check-webproject-status" if="typescript.ready"
+    description="compile typescript files build/*.ts"
+    >
+    <echo message="Typescript compiling ${build.web.dir}/resources/js" />
+      <TypeScriptCompileDir
+          src="${build.web.dir}/resources/js/"
+          module="amd"
+      />      
+      
+    <!-- out="${build.web.dir}/resources/js" -->
+</target>
+
+
+<!-- post-compile rule for web projects - kicks in if build.web.dir netbeans property is defined -->
+<target name="-post-compile" depends="config-check,ydoc,typescript" if="build.copy.webjars">
+      <copy todir="${build.web.dir}/WEB-INF/lib">
+        <fileset dir="ivy/test"/>
+      </copy>
+</target>
+
+</project>
