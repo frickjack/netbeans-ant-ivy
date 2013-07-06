@@ -16,7 +16,7 @@
 <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" /> 
 <property name="libs.CopyLibs.classpath" value="${ivy.jar.dir}/netbeans_ant/org-netbeans-modules-java-j2seproject-copylibstask.jar" />
 <property name="typescript.compiler.path" value="${user.home}/AppData/Roaming/npm/tsc.cmd" />
-<property name="ydoc.path" value="${user.home}/Documents/Code/yuidoc/bin/ydoc.bat" />
+<property name="ydoc.path" value="${user.home}/AppData/Roaming/npm/yuidoc.cmd" />
 
 
 
@@ -336,6 +336,8 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
     description="run ydoc on build/ js"
     >
   <exec executable="${ydoc.path}">
+    <arg value="--outdir" />
+    <arg value="${build.web.dir}/yuidoc" />
     <arg value="${build.web.dir}/resources/js/littleware"/>
  </exec>    
 </target>
@@ -442,6 +444,7 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
       <TypeScriptCompileDir
           src="${build.web.dir}/resources/js/"
           module="amd"
+          comments="true"
       />      
       
     <!-- out="${build.web.dir}/resources/js" -->
@@ -449,7 +452,7 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
 
 
 <!-- post-compile rule for web projects - kicks in if build.web.dir netbeans property is defined -->
-<target name="-post-compile" depends="config-check,ydoc,typescript" if="build.copy.webjars">
+<target name="-post-compile" depends="config-check,typescript,ydoc" if="build.copy.webjars">
       <copy todir="${build.web.dir}/WEB-INF/lib">
         <fileset dir="ivy/test"/>
       </copy>
