@@ -17,6 +17,7 @@
 <property name="libs.CopyLibs.classpath" value="${ivy.jar.dir}/netbeans_ant/org-netbeans-modules-java-j2seproject-copylibstask.jar" />
 <property name="typescript.compiler.path" value="${user.home}/AppData/Roaming/npm/tsc.cmd" />
 <property name="ydoc.path" value="${user.home}/AppData/Roaming/npm/yuidoc.cmd" />
+<property name="phantomjs.path" value="C:/Program Files/phantomjs/phantomjs-1.9.1-windows/phantomjs.exe" />
 
 
 
@@ -173,7 +174,18 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
             <available file="${build.web.dir}/resources/js" />
         </and>
     </condition>    
-    
+
+    <condition property="phantomjs.ready">
+        <and>
+            <!--
+            <isset property="settings.exists" />
+            -->
+            <isset property="phantomjs.path" />
+            <isset property="phantomjs.urls" />
+            <available file="${phantomjs.path}" />
+        </and>
+    </condition>    
+        
     <condition property="ydoc.ready">
         <and>
             <!--
@@ -332,7 +344,7 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
 <!-- web project stuff -->
 
 
-<target name="ydoc" depends="-check-webproject-status" if="ydoc.ready" 
+<target name="ydoc" depends="-check-webproject-status,compile" if="ydoc.ready" 
     description="run ydoc on build/ js"
     >
   <exec executable="${ydoc.path}">
@@ -342,6 +354,14 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
  </exec>    
 </target>
 
+<target name="phantomjs" depends="-check-webproject-status" if="phantomjs.ready" 
+    description="phantomjs against URLs in phantomjs.urls property"
+    >
+  <exec executable="${phantomjs.path}">
+    <arg value="${ivy.jar.dir}/phantomTestRunner.js" />
+    <arg value="${phantomjs.urls}" />
+ </exec>    
+</target>
     
 <!--
     Recursively read a source directory for TypeScript files, generate a compile list in the
@@ -452,7 +472,7 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
 
 
 <!-- post-compile rule for web projects - kicks in if build.web.dir netbeans property is defined -->
-<target name="-post-compile" depends="config-check,typescript,ydoc" if="build.copy.webjars">
+<target name="-post-compile" depends="config-check,typescript" if="build.copy.webjars">
       <copy todir="${build.web.dir}/WEB-INF/lib">
         <fileset dir="ivy/test"/>
       </copy>
