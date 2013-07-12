@@ -362,6 +362,16 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
     <arg value="${phantomjs.urls}" />
  </exec>    
 </target>
+
+<target name="makepom" depends="init" description="generate maven module.pom">
+    <ivy:makepom ivyfile="ivy.xml" pomfile="module.pom" conf="compile,test">
+       <mapping conf="compile" scope="compile"/>
+       <mapping conf="test" scope="runtime"/>
+       <!--
+         <dependency group="com.acme" artifact="acme-logging" version="1.0" optional="true"/>
+       -->
+    </ivy:makepom>
+</target>
     
 <!--
     Recursively read a source directory for TypeScript files, generate a compile list in the
