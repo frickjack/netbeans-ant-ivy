@@ -387,7 +387,6 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
     <!-- optional attributes -->
     <attribute name="out" default="" />
     <attribute name="module" default="" />
-    <attribute name="comments" default="" />
     <attribute name="declarations" default="" />
     <attribute name="nolib" default="" />
     <attribute name="target" default="" />
@@ -397,7 +396,6 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
         <!-- local properties -->
         <local name="out.arg"/>
         <local name="module.arg"/>
-        <local name="comments.arg"/>
         <local name="declarations.arg"/>
         <local name="nolib.arg"/>
         <local name="target.arg"/>
@@ -413,10 +411,6 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
 
         <condition property="module.arg" value="" else="--module @{module}">
             <equals arg1="@{module}" arg2="" />
-        </condition>
-
-        <condition property="comments.arg" value="" else="--comments">
-            <equals arg1="@{comments}" arg2="" />
         </condition>
 
         <condition property="declarations.arg" value="" else="--declarations">
@@ -449,7 +443,7 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
 
         <!-- Write to the file -->
         <echo message="Writing tsc command line arguments to : ${tsc.compile.file}" />
-        <echo file="${tsc.compile.file}" message="${typescript.file.list}${line.separator}${out.arg}${line.separator}${module.arg}${line.separator}${comments.arg}${line.separator}${declarations.arg}${line.separator}${nolib.arg}${line.separator}${target.arg}${line.separator}--sourcemap" append="false" />
+        <echo file="${tsc.compile.file}" message="${typescript.file.list}${line.separator}${out.arg}${line.separator}${module.arg}${line.separator}${declarations.arg}${line.separator}${nolib.arg}${line.separator}${target.arg}${line.separator}--sourcemap" append="false" />
 
         <!-- Compile using the generated compile file --> 
         <echo message="Calling ${typescript.compiler.path} with ${tsc.compile.file}" />
@@ -474,7 +468,6 @@ IVY resolve the param.ivy.config configuration into ivy/${param.ivy.config}
       <TypeScriptCompileDir
           src="${build.web.dir}/resources/js/"
           module="amd"
-          comments="true"
       />      
       
     <!-- out="${build.web.dir}/resources/js" -->
